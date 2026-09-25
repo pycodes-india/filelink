@@ -130,7 +130,6 @@ input[type="file"] { display: none; }
 /* RESULTS & LINKS */
 .results { margin-top: 20px; }
 .result { background: #ffffe0; border: 1px solid #e6db55; border-radius: 4px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.result.group-link-card { background: #eef4ff; border-color: #a4c2f4; }
 .result-top { display: flex; align-items: center; gap: 10px; }
 .success-icon { font-size: 20px; font-weight: bold; color: #264409; }
 .result-info { min-width: 0; }
@@ -145,15 +144,6 @@ input[type="file"] { display: none; }
 .action-row { display: flex; gap: 5px; margin-top: 10px; border-top: 1px dotted #cccccc; padding-top: 10px; }
 .secondary-button { flex: 1; height: 30px; }
 
-/* SHARED GALLERY VIEW */
-.gallery-item { margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.gallery-item img, .gallery-item video { width: 100%; height: auto; border: 1px solid #ddd; display: block; }
-.download-btn { display: block; text-align: center; margin-top: 8px; text-decoration: none; font-size: 12px; }
-
-.info { margin-top: 20px; background: #f9f9f9; border: 1px solid #cccccc; border-radius: 4px; padding: 15px; }
-.info-title { font-size: 13px; font-weight: bold; color: #1a51a8; margin-bottom: 8px; border-bottom: 1px dotted #ccc; padding-bottom: 5px; }
-.info-list { display: flex; flex-direction: column; gap: 5px; }
-.info-item { color: #444444; font-size: 12px; }
 .footer { text-align: center; color: #777777; font-size: 11px; padding: 0 20px 30px; text-shadow: 1px 1px 0 #ffffff; }
 
 @media(max-width: 600px) {
@@ -170,7 +160,6 @@ input[type="file"] { display: none; }
     <a href="?" class="logo">
         File-Link <span class="logo-box">PyCodes</span>
     </a>
- 
 </header>
 
 <main class="main">
@@ -211,7 +200,7 @@ input[type="file"] { display: none; }
         <button class="upload-button" id="uploadButton" disabled>Upload Files</button>
     </section>
 
-    <!-- RESULTS / GALLERY SECTION -->
+    <!-- RESULTS SECTION -->
     <section class="results" id="results"></section>
 
 </main>
@@ -240,48 +229,8 @@ const progressText = document.getElementById("progressText");
 const status = document.getElementById("status");
 const results = document.getElementById("results");
 const uploadSection = document.getElementById("uploadSection");
-const infoSection = document.getElementById("infoSection");
 
 let selectedFiles = [];
-
-/* =========================================================
-   CHECK FOR GROUP LINK (ON PAGE LOAD)
-========================================================= */
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shareData = urlParams.get('gallery');
-    
-    if(shareData) {
-        uploadSection.style.display = 'none';
-        infoSection.style.display = 'none';
-        document.getElementById('mainTitle').textContent = "Shared Gallery";
-        document.getElementById('mainDesc').textContent = "Someone has shared these files with you.";
-        
-        try {
-            const decodedUrls = atob(shareData).split(',');
-            decodedUrls.forEach(url => {
-                const item = document.createElement('div');
-                item.className = 'gallery-item';
-                
-                if(url.includes('/video/upload/')) {
-                    item.innerHTML = `
-                        <video src="${escapeAttribute(url)}" controls></video>
-                        <a href="${escapeAttribute(url)}" target="_blank" class="secondary-button download-btn">Open Video</a>
-                    `;
-                } else {
-                    item.innerHTML = `
-                        <img src="${escapeAttribute(url)}">
-                        <a href="${escapeAttribute(url)}" target="_blank" class="secondary-button download-btn">Open Image</a>
-                    `;
-                }
-                results.appendChild(item);
-            });
-        } catch(e) {
-            results.innerHTML = "<div class='status error'>This link is invalid or has expired.</div>";
-        }
-    }
-});
-
 
 /* =========================================================
    FILE PICKER & DRAG/DROP
@@ -388,7 +337,6 @@ uploadButton.addEventListener("click", async () => {
     clearStatus();
 
     let successful = 0;
-    let uploadedUrls = [];
 
     for(let i = 0; i < selectedFiles.length; i++){
         const file = selectedFiles[i];
@@ -400,8 +348,7 @@ uploadButton.addEventListener("click", async () => {
                 setProgress(overall);
             });
             
-            uploadedUrls.push(response.secure_url);
-            addResult(file, response.secure_url, "single");
+            addResult(file, response.secure_url);
             successful++;
         } catch(error){
             showStatus(`"${file.name}" could not be uploaded.`, "error");
@@ -411,10 +358,6 @@ uploadButton.addEventListener("click", async () => {
     setProgress(100);
     progressText.textContent = "Upload Complete";
     showStatus(`${successful} file(s) successfully uploaded.`, "success");
-
-    if(successful > 1) {
-        addGroupLink(uploadedUrls);
-    }
 
     selectedFiles = [];
     renderFiles();
@@ -449,7 +392,7 @@ function uploadFile(file, progressCallback){
 /* =========================================================
    RESULT CARDS
 ========================================================= */
-function addResult(file, url, type = "single"){
+function addResult(file, url){
     const result = document.createElement("div");
     result.className = "result";
     
@@ -472,36 +415,6 @@ function addResult(file, url, type = "single"){
     `;
 
     setupResultButtons(result, url, file.name);
-    results.prepend(result);
-}
-
-function addGroupLink(urls) {
-    const encoded = btoa(urls.join(','));
-    const currentUrlWithoutParams = window.location.href.split('?')[0];
-    const groupUrl = `${currentUrlWithoutParams}?gallery=${encoded}`;
-
-    const result = document.createElement("div");
-    result.className = "result group-link-card";
-    
-    result.innerHTML = `
-        <div class="result-top">
-            <div class="success-icon" style="color:#1a51a8;">🔗</div>
-            <div class="result-info">
-                <div class="result-name">Group Link (${urls.length} Files)</div>
-                <div class="result-status" style="color:#1a51a8;">Share multiple files at once</div>
-            </div>
-        </div>
-        <div class="link-box">
-            <input type="text" readonly value="${escapeAttribute(groupUrl)}">
-            <button class="copy-button" style="background: linear-gradient(to bottom, #f0f8ff 0%, #d0e4fb 100%);">Copy Group Link</button>
-        </div>
-        <div class="action-row">
-            <button class="secondary-button open-button">View Gallery</button>
-            <button class="secondary-button share-button">Share Gallery</button>
-        </div>
-    `;
-
-    setupResultButtons(result, groupUrl, "Shared Gallery");
     results.prepend(result);
 }
 
