@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FileLink - PyCodes</title>
+<script>
+    // 1. Right-click disable karein
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+// 2. Keyboard shortcuts disable karein
+document.addEventListener('keydown', function(e) {
+    if (e.keyCode == 123) return false;
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+    if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+    if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+});
+</script>
+<style>
+/* 2010 (WEB 2.0) THEME CSS */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: Tahoma, Arial, Helvetica, sans-serif;
+    background-color: #e9eaec;
+    background-image: linear-gradient(to bottom, #f0f0f0 0%, #e0e0e0 100%);
+    color: #333333;
+    min-height: 100vh;
+}
+button, input { font: inherit; }
+
+/* HEADER */
+.header {
+    height: 55px;
+    background: #4a86e8;
+    background: linear-gradient(to bottom, #639bf0 0%, #4a86e8 45%, #1a51a8 100%);
+    border-bottom: 2px solid #0f3470;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+}
+.logo {
+    display: flex; align-items: center; gap: 8px; font-size: 24px; font-weight: bold;
+    color: #ffffff; text-shadow: 1px 1px 2px #000000; text-decoration: none;
+}
+.logo-box {
+    background: linear-gradient(to bottom, #ff5555 0%, #cc0000 100%); color: #ffffff;
+    border-radius: 4px; padding: 2px 6px; font-size: 11px; font-weight: bold;
+    border: 1px solid #990000; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.4);
+    text-transform: uppercase; text-shadow: none;
+}
+.help { color: #c9defc; font-size: 13px; text-shadow: 1px 1px 1px #000; }
+
+/* MAIN */
+.main { width: min(700px, 94%); margin: 30px auto 50px; }
+.intro { text-align: center; margin-bottom: 20px; text-shadow: 1px 1px 0 #ffffff; }
+.intro h1 { font-size: 26px; font-weight: normal; color: #1a51a8; letter-spacing: -1px; margin-bottom: 5px; }
+.intro p { color: #555555; font-size: 13px; }
+
+/* UPLOAD CARD */
+.card {
+    background: #ffffff; border: 1px solid #b3b3b3; border-radius: 5px;
+    padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.drop-area {
+    border: 2px dashed #aaaaaa; border-radius: 4px; min-height: 200px; display: flex;
+    align-items: center; justify-content: center; text-align: center; padding: 30px 20px;
+    cursor: pointer; background: #f7f7f7;
+}
+.drop-area:hover, .drop-area.dragging { background: #ffffe0; border-color: #888888; }
+.upload-symbol { font-size: 42px; color: #666666; margin-bottom: 5px; text-shadow: 1px 1px 0 #ffffff; }
+.drop-area h2 { font-size: 16px; font-weight: bold; color: #333333; margin-bottom: 5px; }
+.drop-area p { color: #777777; font-size: 12px; }
+
+/* BUTTONS */
+.select-button, .copy-button, .secondary-button {
+    background: linear-gradient(to bottom, #ffffff 0%, #e5e5e5 100%); border: 1px solid #aaaaaa;
+    border-radius: 4px; color: #333333; text-shadow: 1px 1px 0 #ffffff;
+    box-shadow: inset 0 1px 0 #ffffff, 0 1px 2px rgba(0,0,0,0.05); padding: 6px 14px;
+    font-size: 13px; font-weight: bold; cursor: pointer; display: inline-block;
+}
+.select-button { margin-top: 15px; }
+.select-button:hover, .copy-button:hover, .secondary-button:hover {
+    background: linear-gradient(to bottom, #ffffff 0%, #d0d0d0 100%); border-color: #999999;
+}
+.drop-note { margin-top: 15px; font-size: 11px; color: #888888; }
+input[type="file"] { display: none; }
+
+/* SELECTED FILES */
+.files-section { display: none; margin-top: 20px; }
+.section-title { font-size: 13px; font-weight: bold; margin-bottom: 10px; color: #444; border-bottom: 1px solid #dddddd; padding-bottom: 5px; }
+.file-row {
+    display: flex; align-items: center; gap: 10px; border: 1px solid #cccccc;
+    background: linear-gradient(to bottom, #ffffff 0%, #f4f4f4 100%); padding: 8px; margin-bottom: 5px; border-radius: 3px;
+}
+.thumbnail {
+    width: 40px; height: 40px; background: #ffffff; border: 1px solid #bbbbbb; padding: 2px;
+    display: flex; align-items: center; justify-content: center; color: #666; font-size: 16px; box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+.thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.file-details { flex: 1; min-width: 0; }
+.file-name { font-size: 13px; font-weight: bold; color: #1a51a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-size { margin-top: 2px; font-size: 11px; color: #666666; }
+.remove-button {
+    background: linear-gradient(to bottom, #ffffff 0%, #e5e5e5 100%); border: 1px solid #aaaaaa;
+    color: #990000; width: 24px; height: 24px; border-radius: 3px; cursor: pointer; font-weight: bold; font-size: 14px;
+}
+.remove-button:hover { background: linear-gradient(to bottom, #ffcccc 0%, #ff9999 100%); border-color: #cc0000; color: #660000; }
+
+/* UPLOAD BUTTON */
+.upload-button {
+    width: 100%; height: 40px; margin-top: 15px; background: linear-gradient(to bottom, #7eb83c 0%, #5c9321 100%);
+    border: 1px solid #437013; border-radius: 4px; color: #ffffff; font-size: 16px; font-weight: bold;
+    text-shadow: 1px 1px 1px #2e4d0d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 3px rgba(0,0,0,0.2); cursor: pointer;
+}
+.upload-button:hover { background: linear-gradient(to bottom, #8fcf45 0%, #69a726 100%); }
+.upload-button:disabled { background: #cccccc; border-color: #aaaaaa; color: #888888; text-shadow: none; box-shadow: none; cursor: not-allowed; }
+
+/* PROGRESS */
+.progress-box { display: none; margin-top: 15px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 3px; }
+.progress-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+.progress-percent { color: #1a51a8; font-weight: bold; }
+.progress-track { height: 14px; background: #e0e0e0; border: 1px solid #999999; border-radius: 3px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; background: linear-gradient(to bottom, #639bf0 0%, #1a51a8 100%); border-right: 1px solid #0f3470; }
+
+/* STATUS */
+.status { display: none; padding: 8px 10px; margin-top: 15px; border-radius: 3px; font-size: 12px; font-weight: bold; }
+.status.error { display: block; background: #ffebe8; color: #cc0000; border: 1px solid #cc0000; }
+.status.success { display: block; background: #e6efc2; color: #264409; border: 1px solid #c6d880; }
+
+/* RESULTS & LINKS */
+.results { margin-top: 20px; }
+.result { background: #ffffe0; border: 1px solid #e6db55; border-radius: 4px; padding: 15px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.result.group-link-card { background: #eef4ff; border-color: #a4c2f4; }
+.result-top { display: flex; align-items: center; gap: 10px; }
+.success-icon { font-size: 20px; font-weight: bold; color: #264409; }
+.result-info { min-width: 0; }
+.result-name { font-size: 13px; font-weight: bold; color: #333333; }
+.result-status { color: #5c9321; font-size: 11px; margin-top: 2px; }
+.link-box { display: flex; margin-top: 10px; gap: 5px; }
+.link-box input {
+    flex: 1; min-width: 0; height: 28px; border: 1px solid #aaaaaa; border-top-color: #666666; border-left-color: #666666;
+    background: #ffffff; padding: 0 8px; color: #333333; font-size: 12px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+.copy-button { height: 28px; padding: 0 10px; }
+.action-row { display: flex; gap: 5px; margin-top: 10px; border-top: 1px dotted #cccccc; padding-top: 10px; }
+.secondary-button { flex: 1; height: 30px; }
+
+/* SHARED GALLERY VIEW */
+.gallery-item { margin-bottom: 15px; background: #fff; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.gallery-item img, .gallery-item video { width: 100%; height: auto; border: 1px solid #ddd; display: block; }
+.download-btn { display: block; text-align: center; margin-top: 8px; text-decoration: none; font-size: 12px; }
+
+.info { margin-top: 20px; background: #f9f9f9; border: 1px solid #cccccc; border-radius: 4px; padding: 15px; }
+.info-title { font-size: 13px; font-weight: bold; color: #1a51a8; margin-bottom: 8px; border-bottom: 1px dotted #ccc; padding-bottom: 5px; }
+.info-list { display: flex; flex-direction: column; gap: 5px; }
+.info-item { color: #444444; font-size: 12px; }
+.footer { text-align: center; color: #777777; font-size: 11px; padding: 0 20px 30px; text-shadow: 1px 1px 0 #ffffff; }
+
+@media(max-width: 600px) {
+    .header { padding: 0 10px; } .main { width: 96%; margin: 15px auto 40px; }
+    .link-box { flex-direction: column; } .copy-button { width: 100%; margin-top: 5px; height: 32px; }
+    .action-row { flex-direction: column; } .secondary-button { height: 32px; }
+}
+</style>
+</head>
+
+<body>
+
+<header class="header">
+    <a href="?" class="logo">
+        File-Link <span class="logo-box">PyCodes</span>
+    </a>
+ 
+</header>
+
+<main class="main">
+    <section class="intro">
+        <h1 id="mainTitle">Share Your Files</h1>
+        <p id="mainDesc">Choose photos or videos and get a shareable link.</p>
+    </section>
+
+    <!-- UPLOAD SECTION -->
+    <section class="card" id="uploadSection">
+        <div class="drop-area" id="dropArea">
+            <div>
+                <div class="upload-symbol">📁</div>
+                <h2>Choose File</h2>
+                <p>Select photos or videos from your device</p>
+                <button class="select-button">Browse Files</button>
+             </div>
+            <input id="fileInput" type="file" multiple accept="image/*,video/*">
+        </div>
+
+        <div class="files-section" id="filesSection">
+            <div class="section-title">Selected Files</div>
+            <div id="fileList"></div>
+        </div>
+
+        <div class="progress-box" id="progressBox">
+            <div class="progress-header">
+                <span class="progress-text" id="progressText">Uploading...</span>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <button class="upload-button" id="uploadButton" disabled>Upload Files</button>
+    </section>
+
+    <!-- RESULTS / GALLERY SECTION -->
+    <section class="results" id="results"></section>
+
+</main>
+
+<footer class="footer">Developed By Jitendra</footer>
+
+<script>
+/* =========================================================
+   CLOUDINARY SETTINGS
+   ========================================================= */
+const CLOUD_NAME = "dkgfgh57";
+const UPLOAD_PRESET = "photos";
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+const filesSection = document.getElementById("filesSection");
+const fileList = document.getElementById("fileList");
+const uploadButton = document.getElementById("uploadButton");
+const progressBox = document.getElementById("progressBox");
+const progressFill = document.getElementById("progressFill");
+const progressPercent = document.getElementById("progressPercent");
+const progressText = document.getElementById("progressText");
+const status = document.getElementById("status");
+const results = document.getElementById("results");
+const uploadSection = document.getElementById("uploadSection");
+const infoSection = document.getElementById("infoSection");
+
+let selectedFiles = [];
+
+/* =========================================================
+   CHECK FOR GROUP LINK (ON PAGE LOAD)
+========================================================= */
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shareData = urlParams.get('gallery');
+    
+    if(shareData) {
+        uploadSection.style.display = 'none';
+        infoSection.style.display = 'none';
+        document.getElementById('mainTitle').textContent = "Shared Gallery";
+        document.getElementById('mainDesc').textContent = "Someone has shared these files with you.";
+        
+        try {
+            const decodedUrls = atob(shareData).split(',');
+            decodedUrls.forEach(url => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                
+                if(url.includes('/video/upload/')) {
+                    item.innerHTML = `
+                        <video src="${escapeAttribute(url)}" controls></video>
+                        <a href="${escapeAttribute(url)}" target="_blank" class="secondary-button download-btn">Open Video</a>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <img src="${escapeAttribute(url)}">
+                        <a href="${escapeAttribute(url)}" target="_blank" class="secondary-button download-btn">Open Image</a>
+                    `;
+                }
+                results.appendChild(item);
+            });
+        } catch(e) {
+            results.innerHTML = "<div class='status error'>This link is invalid or has expired.</div>";
+        }
+    }
+});
+
+
+/* =========================================================
+   FILE PICKER & DRAG/DROP
+========================================================= */
+dropArea.addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", () => {
+    addFiles(Array.from(fileInput.files));
+    fileInput.value = "";
+});
+
+dropArea.addEventListener("dragover", e => { e.preventDefault(); dropArea.classList.add("dragging"); });
+dropArea.addEventListener("dragleave", () => dropArea.classList.remove("dragging"));
+dropArea.addEventListener("drop", e => {
+    e.preventDefault(); dropArea.classList.remove("dragging");
+    addFiles(Array.from(e.dataTransfer.files));
+});
+
+/* =========================================================
+   ADD FILES (WITH DUPLICATE CHECK)
+========================================================= */
+function addFiles(files){
+    const allowed = [];
+    files.forEach(file => {
+        const isImage = file.type.startsWith("image/");
+        const isVideo = file.type.startsWith("video/");
+
+        if(!isImage && !isVideo){
+            showStatus(`"${file.name}" — This file type is not supported.`, "error");
+            return;
+        }
+
+        const isDuplicate = selectedFiles.some(existingFile => 
+            existingFile.name === file.name && existingFile.size === file.size
+        );
+        
+        if(isDuplicate){
+            showStatus(`"${file.name}" is already in the list.`, "error");
+            return;
+        }
+
+        allowed.push(file);
+    });
+
+    selectedFiles.push(...allowed);
+    renderFiles();
+}
+
+/* =========================================================
+   RENDER SELECTED FILES
+========================================================= */
+function renderFiles(){
+    fileList.innerHTML = "";
+    if(selectedFiles.length === 0){
+        filesSection.style.display = "none";
+        uploadButton.disabled = true;
+        return;
+    }
+    filesSection.style.display = "block";
+    uploadButton.disabled = false;
+
+    selectedFiles.forEach((file,index) => {
+        const row = document.createElement("div");
+        row.className = "file-row";
+        const thumbnail = document.createElement("div");
+        thumbnail.className = "thumbnail";
+        if(file.type.startsWith("image/")){
+            const image = document.createElement("img");
+            image.src = URL.createObjectURL(file);
+            thumbnail.appendChild(image);
+        } else {
+            thumbnail.textContent = "▶";
+        }
+
+        const details = document.createElement("div");
+        details.className = "file-details";
+        details.innerHTML = `<div class="file-name">${escapeHTML(file.name)}</div><div class="file-size">${formatSize(file.size)}</div>`;
+
+        const remove = document.createElement("button");
+        remove.className = "remove-button";
+        remove.textContent = "×";
+        remove.title = "Remove";
+        remove.addEventListener("click", e => {
+            e.stopPropagation();
+            selectedFiles.splice(index, 1);
+            renderFiles();
+        });
+
+        row.appendChild(thumbnail);
+        row.appendChild(details);
+        row.appendChild(remove);
+        fileList.appendChild(row);
+    });
+}
+
+/* =========================================================
+   UPLOAD BUTTON
+========================================================= */
+uploadButton.addEventListener("click", async () => {
+    if(selectedFiles.length === 0) return;
+
+    uploadButton.disabled = true;
+    progressBox.style.display = "block";
+    clearStatus();
+
+    let successful = 0;
+    let uploadedUrls = [];
+
+    for(let i = 0; i < selectedFiles.length; i++){
+        const file = selectedFiles[i];
+        progressText.textContent = `Uploading (${i+1}/${selectedFiles.length}): ${file.name}`;
+
+        try{
+            const response = await uploadFile(file, percent => {
+                const overall = ((i * 100 + percent) / selectedFiles.length);
+                setProgress(overall);
+            });
+            
+            uploadedUrls.push(response.secure_url);
+            addResult(file, response.secure_url, "single");
+            successful++;
+        } catch(error){
+            showStatus(`"${file.name}" could not be uploaded.`, "error");
+        }
+    }
+
+    setProgress(100);
+    progressText.textContent = "Upload Complete";
+    showStatus(`${successful} file(s) successfully uploaded.`, "success");
+
+    if(successful > 1) {
+        addGroupLink(uploadedUrls);
+    }
+
+    selectedFiles = [];
+    renderFiles();
+    uploadButton.disabled = false;
+});
+
+/* =========================================================
+   CLOUDINARY API
+========================================================= */
+function uploadFile(file, progressCallback){
+    return new Promise((resolve,reject) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", UPLOAD_PRESET);
+        const resourceType = file.type.startsWith("video/") ? "video" : "image";
+        const endpoint = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", endpoint, true);
+        xhr.upload.addEventListener("progress", e => {
+            if(e.lengthComputable) progressCallback((e.loaded / e.total) * 100);
+        });
+        xhr.onload = () => {
+            if(xhr.status >= 200 && xhr.status < 300) resolve(JSON.parse(xhr.responseText));
+            else reject(new Error("Upload failed"));
+        };
+        xhr.onerror = () => reject(new Error("Network Error"));
+        xhr.send(formData);
+    });
+}
+
+/* =========================================================
+   RESULT CARDS
+========================================================= */
+function addResult(file, url, type = "single"){
+    const result = document.createElement("div");
+    result.className = "result";
+    
+    result.innerHTML = `
+        <div class="result-top">
+            <div class="success-icon">✓</div>
+            <div class="result-info">
+                <div class="result-name">${escapeHTML(file.name)}</div>
+                <div class="result-status">File is ready</div>
+            </div>
+        </div>
+        <div class="link-box">
+            <input type="text" readonly value="${escapeAttribute(url)}">
+            <button class="copy-button">Copy Link</button>
+        </div>
+        <div class="action-row">
+            <button class="secondary-button open-button">Open File</button>
+            <button class="secondary-button share-button">Share</button>
+        </div>
+    `;
+
+    setupResultButtons(result, url, file.name);
+    results.prepend(result);
+}
+
+function addGroupLink(urls) {
+    const encoded = btoa(urls.join(','));
+    const currentUrlWithoutParams = window.location.href.split('?')[0];
+    const groupUrl = `${currentUrlWithoutParams}?gallery=${encoded}`;
+
+    const result = document.createElement("div");
+    result.className = "result group-link-card";
+    
+    result.innerHTML = `
+        <div class="result-top">
+            <div class="success-icon" style="color:#1a51a8;">🔗</div>
+            <div class="result-info">
+                <div class="result-name">Group Link (${urls.length} Files)</div>
+                <div class="result-status" style="color:#1a51a8;">Share multiple files at once</div>
+            </div>
+        </div>
+        <div class="link-box">
+            <input type="text" readonly value="${escapeAttribute(groupUrl)}">
+            <button class="copy-button" style="background: linear-gradient(to bottom, #f0f8ff 0%, #d0e4fb 100%);">Copy Group Link</button>
+        </div>
+        <div class="action-row">
+            <button class="secondary-button open-button">View Gallery</button>
+            <button class="secondary-button share-button">Share Gallery</button>
+        </div>
+    `;
+
+    setupResultButtons(result, groupUrl, "Shared Gallery");
+    results.prepend(result);
+}
+
+function setupResultButtons(element, url, title) {
+    const input = element.querySelector("input");
+    const copyButton = element.querySelector(".copy-button");
+    const openButton = element.querySelector(".open-button");
+    const shareButton = element.querySelector(".share-button");
+
+    copyButton.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(url); showCopied(copyButton, "Copy Link"); }
+        catch(e) { input.select(); document.execCommand("copy"); showCopied(copyButton, "Copy Link"); }
+    });
+
+    openButton.addEventListener("click", () => window.open(url, "_blank"));
+
+    shareButton.addEventListener("click", async () => {
+        if(navigator.share) {
+            try { await navigator.share({ title: title, text: "Check this out:", url: url }); } catch(e){}
+        } else {
+            try { await navigator.clipboard.writeText(url); showCopied(shareButton, "Share"); }
+            catch(e) { alert("Copy this link:\n\n" + url); }
+        }
+    });
+}
+
+function showCopied(btn, defaultText = "Copy Link") {
+    btn.textContent = "✓ Copied";
+    setTimeout(() => btn.textContent = defaultText, 1800);
+}
+
+/* =========================================================
+   PROGRESS & STATUS
+========================================================= */
+function setProgress(percent){
+    progressFill.style.width = Math.max(0, Math.min(100, percent)) + "%";
+    progressPercent.textContent = Math.round(percent) + "%";
+}
+
+function showStatus(message, type){
+    status.className = "status " + type; status.textContent = message;
+}
+function clearStatus(){ status.className = "status"; status.textContent = ""; }
+
+function formatSize(bytes){
+    if(bytes < 1024) return bytes + " B";
+    if(bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    if(bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + " MB";
+    return (bytes / 1024 / 1024 / 1024).toFixed(1) + " GB";
+}
+
+function escapeHTML(value){
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+function escapeAttribute(value){
+    return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+</script>
+
+</body>
+</html>
